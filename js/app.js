@@ -3,12 +3,16 @@
  * attendance record if one is not found
  * within localStorage.
  */
-(function() {
-    if (!localStorage.attendance) {
-        console.log('Creating attendance records...');
-        function getRandom() {
-            return (Math.random() >= 0.5);
-        }
+
+/* STUDENT APPLICATION */
+$(function() {
+
+    function getRandom() {
+        return (Math.random() >= 0.5);
+    }
+
+    function initialState() {
+        if (localStorage.attendance) return localStorage.attendance;
 
         var nameColumns = $('tbody .name-col'),
             attendance = {};
@@ -23,62 +27,50 @@
         });
 
         localStorage.attendance = JSON.stringify(attendance);
+        return JSON.stringify(attendance);
     }
-}());
 
+    function renderAttendance(attendance) {
+        var $students = $('.student');
+        var len = $students.length;
+        var $student;
 
-/* STUDENT APPLICATION */
-$(function() {
-    var attendance = JSON.parse(localStorage.attendance),
-        $allMissed = $('tbody .missed-col'),
-        $allCheckboxes = $('tbody input');
+        for (var i = 0; i < len; i++) {
+            $student = $students.eq(i);
+            $student.find('.attend-col').each(function(index, dom) {
+                $(dom).find('input').prop('checked', attendance[$student.find('.name-col').text()][index]);
+            });
+        }
+    }
 
-    // Count a student's missed days
     function countMissing() {
-        $allMissed.each(function() {
-            var studentRow = $(this).parent('tr'),
-                dayChecks = $(studentRow).children('td').children('input'),
-                numMissed = 0;
+        var $students = $('.student');
+        var $student;
+        var $attendCol;
+        var miss;
 
-            dayChecks.each(function() {
-                if (!$(this).prop('checked')) {
-                    numMissed++;
-                }
-            });
+        for (var i = 0, len = $students.length; i < len; i++) {
+            $student = $students.eq(i);
+            $attendCol = $student.find('.attend-col')
+            miss = 0;
+            for (var j = 0, length = $attendCol.length; j < length; j++) {
+                !$attendCol.eq(j).find('input').prop('checked') && (miss += 1);
+            }
+            $student.find('.missed-col').text(miss);
+        }
+    }
 
-            $(this).text(numMissed);
+    function bindClickEvent() {
+        $('.student').on('click', 'input', function() {
+            countMissing();
         });
     }
 
-    // Check boxes, based on attendace records
-    $.each(attendance, function(name, days) {
-        var studentRow = $('tbody .name-col:contains("' + name + '")').parent('tr'),
-            dayChecks = $(studentRow).children('.attend-col').children('input');
-
-        dayChecks.each(function(i) {
-            $(this).prop('checked', days[i]);
-        });
-    });
-
-    // When a checkbox is clicked, update localStorage
-    $allCheckboxes.on('click', function() {
-        var studentRows = $('tbody .student'),
-            newAttendance = {};
-
-        studentRows.each(function() {
-            var name = $(this).children('.name-col').text(),
-                $allCheckboxes = $(this).children('td').children('input');
-
-            newAttendance[name] = [];
-
-            $allCheckboxes.each(function() {
-                newAttendance[name].push($(this).prop('checked'));
-            });
-        });
-
+    function render() {
+        renderAttendance(JSON.parse(initialState()));
         countMissing();
-        localStorage.attendance = JSON.stringify(newAttendance);
-    });
+        bindClickEvent();
+    }
 
-    countMissing();
+    render();
 }());
